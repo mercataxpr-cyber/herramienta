@@ -1,0 +1,6 @@
+{
+  "name": "DC-haZlo",
+  "description": "Una app que genera mini-apps funcionales desde prompts usando OpenAI o Gemini.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
