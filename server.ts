@@ -16,6 +16,61 @@ async function startServer() {
     connectedAt: new Date().toISOString(),
   };
 
+  // In-memory database store for backend data items
+  let backendDatabaseStore = [
+    { id: "1", key: "app_nombre", value: "DC-haZlo Workspace", updatedAt: new Date().toISOString() },
+    { id: "2", key: "puerto_backend", value: "3000", updatedAt: new Date().toISOString() },
+    { id: "3", key: "entorno", value: "Cloud Run Container / Node Express", updatedAt: new Date().toISOString() },
+  ];
+
+  // Backend Status Endpoint
+  app.get("/api/backend/status", (req: express.Request, res: express.Response) => {
+    res.json({
+      online: true,
+      uptime: process.uptime(),
+      memory: `${(process.memoryUsage().heapUsed / 1024 / 1024).toFixed(1)} MB`,
+      nodeVersion: process.version,
+      activeRoutes: [
+        "/api/orchestrator/chat",
+        "/api/backend/status",
+        "/api/backend/data",
+        "/api/github/connect",
+        "/api/github/push",
+        "/api/vercel/deploy",
+        "/api/auth/codex/status",
+      ],
+    });
+  });
+
+  // Backend Persistent Data Store REST API
+  app.get("/api/backend/data", (req: express.Request, res: express.Response) => {
+    res.json({ items: backendDatabaseStore });
+  });
+
+  app.post("/api/backend/data", (req: express.Request, res: express.Response) => {
+    const { key, value } = req.body;
+    if (!key || !value) {
+      return res.status(400).json({ error: "Key y Value son requeridos" });
+    }
+    const newItem = {
+      id: Date.now().toString(),
+      key,
+      value: typeof value === "object" ? JSON.stringify(value) : String(value),
+      updatedAt: new Date().toISOString(),
+    };
+    backendDatabaseStore.unshift(newItem);
+    res.json({ success: true, item: newItem });
+  });
+
+  app.delete("/api/backend/data", (req: express.Request, res: express.Response) => {
+    const { id } = req.query;
+    if (!id) {
+      return res.status(400).json({ error: "ID no especificado" });
+    }
+    backendDatabaseStore = backendDatabaseStore.filter((item) => item.id !== id);
+    res.json({ success: true, message: "Registro eliminado exitosamente" });
+  });
+
   // 1. Auth Codex Endpoints
   app.get("/api/auth/codex/status", (req: express.Request, res: express.Response) => {
     res.json({
@@ -50,17 +105,31 @@ async function startServer() {
   // 2. Orchestrator Agent Chat & Step Execution Endpoint
   app.post("/api/orchestrator/chat", async (req: express.Request, res: express.Response) => {
     try {
-      const { prompt, provider, previousHtml, history, agentId = "teki" } = req.body;
+      const {
+        prompt,
+        provider,
+        previousHtml,
+        history,
+        agentId = "teki",
+        agentName,
+        agentRole,
+        agentPrompt,
+      } = req.body;
 
       if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
         res.status(400).json({ error: { message: "Por favor escribe una instrucción para el agente." } });
         return;
       }
 
-      const chosenAgent = agentId || "teki";
+      const chosenAgentName = agentName || agentId.toUpperCase();
+      const customRoleText = agentRole ? `Tu especialidad/rol es: ${agentRole}.` : '';
+      const customInstructions = agentPrompt ? `Instrucciones específicas de este agente: ${agentPrompt}` : '';
 
       // Build system instruction tailored to agent role
-      const systemPrompt = `Eres el Agente ${chosenAgent.toUpperCase()} de DC-haZlo, un sistema orquestador de desarrollo de software avanzado.
+      const systemPrompt = `Eres el Agente ${chosenAgentName} de DC-haZlo, un sistema orquestador de desarrollo de software avanzado.
+${customRoleText}
+${customInstructions}
+
 Tu función es generar o modificar aplicaciones web completamente funcionales y autocontenidas como un ÚNICO archivo HTML con CSS e JavaScript integrados.
 
 REGLAS OBLIGATORIAS:
@@ -243,7 +312,7 @@ ${prompt}`;
           id: `act-1-${Date.now()}`,
           timestamp: new Date().toLocaleTimeString(),
           type: "thinking",
-          text: `Agente ${chosenAgent.toUpperCase()} analizando requerimiento...`,
+          text: `Agente ${chosenAgentName} analizando requerimiento...`,
           status: "completed",
         },
         {

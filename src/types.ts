@@ -17,12 +17,14 @@ export type CodexConnectionStatus =
   | 'error';
 
 export interface AgentInfo {
-  id: 'teki' | 'nova' | 'baki' | 'dorko';
+  id: string;
   name: string;
   role: string;
   avatar: string;
   description: string;
   allowedTools: string[];
+  systemPrompt?: string;
+  isCustom?: boolean;
 }
 
 export interface AgentActivity {
@@ -55,7 +57,7 @@ export interface PendingApproval {
 export interface ChatMessage {
   id: string;
   sender: 'user' | 'agent' | 'system';
-  agentId?: 'teki' | 'nova' | 'baki' | 'dorko';
+  agentId?: string;
   text: string;
   timestamp: string;
   activities?: AgentActivity[];
@@ -76,7 +78,7 @@ export interface GitStatus {
 export interface WorkspaceSession {
   id: string;
   title: string;
-  activeAgentId: 'teki' | 'nova' | 'baki' | 'dorko';
+  activeAgentId: string;
   codexStatus: CodexConnectionStatus;
   gitStatus: GitStatus;
   modifiedFiles: ModifiedFile[];

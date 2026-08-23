@@ -18,8 +18,10 @@ interface WorkspaceLayoutProps {
   messages: ChatMessage[];
   onSendMessage: (text: string) => void;
   isGenerating: boolean;
-  selectedAgentId: 'teki' | 'nova' | 'baki' | 'dorko';
-  onSelectAgent: (id: 'teki' | 'nova' | 'baki' | 'dorko') => void;
+  selectedAgentId: string;
+  onSelectAgent: (id: string) => void;
+  agents: AgentInfo[];
+  onOpenAgentsManager?: () => void;
   modifiedFiles: ModifiedFile[];
   gitStatus: GitStatus;
   onApproveRequest: (approvalId: string) => void;
@@ -40,6 +42,8 @@ export const WorkspaceLayout: React.FC<WorkspaceLayoutProps> = ({
   isGenerating,
   selectedAgentId,
   onSelectAgent,
+  agents,
+  onOpenAgentsManager,
   modifiedFiles,
   gitStatus,
   onApproveRequest,
@@ -96,6 +100,8 @@ export const WorkspaceLayout: React.FC<WorkspaceLayoutProps> = ({
             isGenerating={isGenerating}
             selectedAgentId={selectedAgentId}
             onSelectAgent={onSelectAgent}
+            agents={agents}
+            onOpenAgentsManager={onOpenAgentsManager}
             onOpenFileDiff={(file) => setSelectedDiffFile(file)}
             onApproveRequest={onApproveRequest}
             onRejectRequest={onRejectRequest}

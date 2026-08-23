@@ -13,9 +13,12 @@ import { MobileLiveViewer } from './components/MobileLiveViewer';
 import { WorkspaceLayout } from './components/WorkspaceLayout';
 import { GitHubCard } from './components/GitHubCard';
 import { VercelCard } from './components/VercelCard';
+import { BackendCard } from './components/BackendCard';
+import { AgentsManagerCard } from './components/AgentsManagerCard';
 
 import { SupabaseConfig, saveAppToSupabase } from './lib/supabase';
 import { getAgentProvider } from './lib/agentOrchestrator';
+import { getStoredAgents, saveAgentsToStorage, resetAgentsStorage } from './lib/agentsConfig';
 import {
   GeneratedApp,
   ProviderType,
@@ -25,6 +28,7 @@ import {
   GitStatus,
   GitHubConfig,
   VercelConfig,
+  AgentInfo,
 } from './types';
 
 export default function App() {
@@ -45,7 +49,10 @@ export default function App() {
   // Orchestrator & Codex connection states
   const [codexStatus, setCodexStatus] = useState<CodexConnectionStatus>('connected');
   const [activeProvider, setActiveProvider] = useState<ProviderType>('codex');
-  const [selectedAgentId, setSelectedAgentId] = useState<'teki' | 'nova' | 'baki' | 'dorko'>('teki');
+
+  // Agents state
+  const [agents, setAgents] = useState<AgentInfo[]>([]);
+  const [selectedAgentId, setSelectedAgentId] = useState<string>('teki');
 
   // Workspace Chat & App states
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -97,8 +104,14 @@ export default function App() {
     isConnected: true,
   });
 
-  // Load saved configurations on startup
+  // Load saved configurations and agents on startup
   useEffect(() => {
+    const loadedAgents = getStoredAgents();
+    setAgents(loadedAgents);
+    if (loadedAgents.length > 0) {
+      setSelectedAgentId(loadedAgents[0].id);
+    }
+
     const savedSupabase = localStorage.getItem('dcHazloSupabaseConfig');
     if (savedSupabase) {
       try {
@@ -146,6 +159,45 @@ export default function App() {
       },
     ]);
   }, []);
+
+  // Agent Management Handlers
+  const handleAddAgent = (newAgent: AgentInfo) => {
+    const updated = [...agents, newAgent];
+    setAgents(updated);
+    saveAgentsToStorage(updated);
+    setSelectedAgentId(newAgent.id);
+  };
+
+  const handleEditAgent = (updatedAgent: AgentInfo) => {
+    const updated = agents.map((a) => (a.id === updatedAgent.id ? updatedAgent : a));
+    setAgents(updated);
+    saveAgentsToStorage(updated);
+  };
+
+  const handleDeleteAgent = (agentId: string) => {
+    const updated = agents.filter((a) => a.id !== agentId);
+    setAgents(updated);
+    saveAgentsToStorage(updated);
+    if (selectedAgentId === agentId && updated.length > 0) {
+      setSelectedAgentId(updated[0].id);
+    }
+  };
+
+  const handleResetAgents = () => {
+    const reset = resetAgentsStorage();
+    setAgents(reset);
+    setSelectedAgentId('teki');
+  };
+
+  const handleScrollToAgentsManager = () => {
+    setViewMode('home');
+    setTimeout(() => {
+      const element = document.getElementById('agents-manager-section');
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 100);
+  };
 
   const handleSetSupabaseConfig = (newConfig: SupabaseConfig) => {
     setSupabaseConfigState(newConfig);
@@ -287,11 +339,15 @@ export default function App() {
     setViewMode('workspace');
 
     try {
+      const activeAgentObj = agents.find((a) => a.id === selectedAgentId);
       const providerInstance = getAgentProvider(activeProvider);
       const result = await providerInstance.sendMessage(userPromptText, {
         currentHtml: generatedHTML,
         history: updatedMessages,
         agentId: selectedAgentId,
+        agentName: activeAgentObj?.name,
+        agentRole: activeAgentObj?.role,
+        agentPrompt: activeAgentObj?.systemPrompt,
       });
 
       if (result.updatedHtml) {
@@ -452,6 +508,8 @@ export default function App() {
           isGenerating={isLoading}
           selectedAgentId={selectedAgentId}
           onSelectAgent={setSelectedAgentId}
+          agents={agents}
+          onOpenAgentsManager={handleScrollToAgentsManager}
           modifiedFiles={modifiedFiles}
           gitStatus={gitStatus}
           onApproveRequest={handleApproveRequest}
@@ -492,6 +550,17 @@ export default function App() {
             }}
           />
 
+          {/* AGENTS MANAGER CARD */}
+          <div id="agents-manager-section" className="w-full max-w-4xl flex justify-center">
+            <AgentsManagerCard
+              agents={agents}
+              onAddAgent={handleAddAgent}
+              onEditAgent={handleEditAgent}
+              onDeleteAgent={handleDeleteAgent}
+              onResetAgents={handleResetAgents}
+            />
+          </div>
+
           {/* GITHUB INTEGRATION CARD */}
           <GitHubCard
             config={githubConfig}
@@ -507,6 +576,9 @@ export default function App() {
             currentAppTitle={appTitle}
             currentHtml={generatedHTML}
           />
+
+          {/* NODE.JS EXPRESS BACKEND CARD */}
+          <BackendCard />
 
           {/* SUPABASE CONNECTION CARD */}
           <SupabaseCard

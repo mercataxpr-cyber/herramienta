@@ -28,6 +28,9 @@ export interface IAgentProvider {
       currentHtml?: string;
       history?: ChatMessage[];
       agentId?: string;
+      agentName?: string;
+      agentRole?: string;
+      agentPrompt?: string;
     }
   ): Promise<AgentResponse>;
 }
@@ -46,6 +49,9 @@ export class CodexAgentProvider implements IAgentProvider {
       currentHtml?: string;
       history?: ChatMessage[];
       agentId?: string;
+      agentName?: string;
+      agentRole?: string;
+      agentPrompt?: string;
     }
   ): Promise<AgentResponse> {
     const response = await fetch('/api/orchestrator/chat', {
@@ -57,6 +63,9 @@ export class CodexAgentProvider implements IAgentProvider {
         provider: 'codex',
         prompt,
         agentId: options.agentId || 'teki',
+        agentName: options.agentName,
+        agentRole: options.agentRole,
+        agentPrompt: options.agentPrompt,
         previousHtml: options.currentHtml,
         history: options.history?.map((msg) => ({
           role: msg.sender === 'user' ? 'user' : 'assistant',
@@ -95,6 +104,9 @@ export class GeminiAgentProvider implements IAgentProvider {
       currentHtml?: string;
       history?: ChatMessage[];
       agentId?: string;
+      agentName?: string;
+      agentRole?: string;
+      agentPrompt?: string;
     }
   ): Promise<AgentResponse> {
     const response = await fetch('/api/orchestrator/chat', {
@@ -106,6 +118,9 @@ export class GeminiAgentProvider implements IAgentProvider {
         provider: 'gemini',
         prompt,
         agentId: options.agentId || 'teki',
+        agentName: options.agentName,
+        agentRole: options.agentRole,
+        agentPrompt: options.agentPrompt,
         previousHtml: options.currentHtml,
         history: options.history?.map((msg) => ({
           role: msg.sender === 'user' ? 'user' : 'assistant',
@@ -144,6 +159,9 @@ export class ClaudeAgentProvider implements IAgentProvider {
       currentHtml?: string;
       history?: ChatMessage[];
       agentId?: string;
+      agentName?: string;
+      agentRole?: string;
+      agentPrompt?: string;
     }
   ): Promise<AgentResponse> {
     const response = await fetch('/api/orchestrator/chat', {
@@ -155,6 +173,9 @@ export class ClaudeAgentProvider implements IAgentProvider {
         provider: 'claude',
         prompt,
         agentId: options.agentId || 'teki',
+        agentName: options.agentName,
+        agentRole: options.agentRole,
+        agentPrompt: options.agentPrompt,
         previousHtml: options.currentHtml,
         history: options.history?.map((msg) => ({
           role: msg.sender === 'user' ? 'user' : 'assistant',

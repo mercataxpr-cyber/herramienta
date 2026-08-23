@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, Sparkles, FileCode2, User, Loader2, ChevronRight, Eye } from 'lucide-react';
+import { Send, Bot, Sparkles, FileCode2, User, Loader2, ChevronRight, Eye, Plus, Settings } from 'lucide-react';
 import { ChatMessage, ModifiedFile, PendingApproval, AgentInfo } from '../types';
-import { AVAILABLE_AGENTS } from '../lib/agentsConfig';
 import { AgentActivityStream } from './AgentActivityStream';
 import { HumanApprovalCard } from './HumanApprovalCard';
 
@@ -9,8 +8,10 @@ interface AgentChatPanelProps {
   messages: ChatMessage[];
   onSendMessage: (text: string) => void;
   isGenerating: boolean;
-  selectedAgentId: 'teki' | 'nova' | 'baki' | 'dorko';
-  onSelectAgent: (id: 'teki' | 'nova' | 'baki' | 'dorko') => void;
+  selectedAgentId: string;
+  onSelectAgent: (id: string) => void;
+  agents: AgentInfo[];
+  onOpenAgentsManager?: () => void;
   onOpenFileDiff: (file: ModifiedFile) => void;
   onApproveRequest: (approvalId: string) => void;
   onRejectRequest: (approvalId: string) => void;
@@ -22,6 +23,8 @@ export const AgentChatPanel: React.FC<AgentChatPanelProps> = ({
   isGenerating,
   selectedAgentId,
   onSelectAgent,
+  agents,
+  onOpenAgentsManager,
   onOpenFileDiff,
   onApproveRequest,
   onRejectRequest,
@@ -29,7 +32,14 @@ export const AgentChatPanel: React.FC<AgentChatPanelProps> = ({
   const [inputText, setInputText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const activeAgent = AVAILABLE_AGENTS.find((a) => a.id === selectedAgentId) || AVAILABLE_AGENTS[0];
+  const activeAgent = agents.find((a) => a.id === selectedAgentId) || agents[0] || {
+    id: 'teki',
+    name: 'TEKI',
+    role: 'Orquestador',
+    avatar: '⚡',
+    description: 'Gestiona la arquitectura global.',
+    allowedTools: [],
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -51,39 +61,70 @@ export const AgentChatPanel: React.FC<AgentChatPanelProps> = ({
             <Bot className="w-5 h-5 text-[#6c63ff]" />
             <h2 className="text-sm font-bold text-white tracking-wide">CHAT / AGENTE</h2>
           </div>
-          <span className="text-[10px] text-[#3ecf8e] bg-[#3ecf8e]/10 border border-[#3ecf8e]/30 px-2.5 py-0.5 rounded-full font-mono font-bold">
-            Orquestador Activo
-          </span>
+
+          {onOpenAgentsManager && (
+            <button
+              type="button"
+              onClick={onOpenAgentsManager}
+              className="text-[11px] text-[#6c63ff] hover:text-white bg-[#6c63ff]/10 hover:bg-[#6c63ff]/20 border border-[#6c63ff]/30 px-2.5 py-1 rounded-xl font-bold transition-all flex items-center gap-1 cursor-pointer"
+              title="Añadir o Editar Agentes"
+            >
+              <Settings className="w-3.5 h-3.5" />
+              <span>Gestionar Agentes</span>
+            </button>
+          )}
         </div>
 
         {/* AGENTS TABS */}
-        <div className="grid grid-cols-4 gap-1.5 p-1 bg-[#1e1e24] rounded-xl border border-[#2a2a35]">
-          {AVAILABLE_AGENTS.map((ag) => {
+        <div className="flex items-center gap-1.5 p-1 bg-[#1e1e24] rounded-xl border border-[#2a2a35] overflow-x-auto no-scrollbar">
+          {agents.map((ag) => {
             const isSelected = ag.id === selectedAgentId;
             return (
               <button
                 key={ag.id}
                 onClick={() => onSelectAgent(ag.id)}
-                className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap flex-shrink-0 ${
                   isSelected
                     ? 'bg-[#6c63ff] text-white shadow-md'
                     : 'text-[#8888aa] hover:text-white hover:bg-[#2a2a35]'
                 }`}
-                title={ag.description}
+                title={`${ag.role} - ${ag.description}`}
               >
                 <span>{ag.avatar}</span>
-                <span className="truncate">{ag.name}</span>
+                <span>{ag.name}</span>
               </button>
             );
           })}
+
+          {onOpenAgentsManager && (
+            <button
+              type="button"
+              onClick={onOpenAgentsManager}
+              className="py-1.5 px-2 text-[#8888aa] hover:text-white hover:bg-[#2a2a35] rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer flex-shrink-0"
+              title="Añadir nuevo agente"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Nuevo</span>
+            </button>
+          )}
         </div>
 
         {/* ACTIVE AGENT DESCRIPTION */}
         <div className="text-[11px] text-[#8888aa] bg-[#1a1a20] p-2.5 rounded-xl border border-[#2a2a35] flex items-center justify-between">
-          <div>
+          <div className="truncate pr-2">
             <span className="font-bold text-white mr-1.5">{activeAgent.name}:</span>
-            <span>{activeAgent.description}</span>
+            <span className="text-[#3ecf8e] font-semibold mr-1.5">[{activeAgent.role}]</span>
+            <span className="hidden sm:inline">{activeAgent.description}</span>
           </div>
+
+          {onOpenAgentsManager && (
+            <button
+              onClick={onOpenAgentsManager}
+              className="text-[10px] text-[#6c63ff] hover:underline cursor-pointer flex-shrink-0 font-mono"
+            >
+              Editar
+            </button>
+          )}
         </div>
       </div>
 
